@@ -11,7 +11,7 @@ from lxml import etree
 
 tlock = threading.Lock()
 dlock = threading.Lock()
-basePath = "/Users/ustone/WWDC2/"
+basePath = "/Users/ustone/WWDC/"
 
 def save_json(path, filename, content):
     if not os.path.exists(path):
@@ -207,11 +207,11 @@ def analyzeNames():
             else:
                 char_dic[c] = 1
     #print("所有字符的特征: ", json.dumps(char_dic))
-    save_json("/Users/ustone/tmp", "char", json.dumps(char_dic))
+    save_json(basePath, "char", json.dumps(char_dic))
 
 if __name__ == '__main__':
     print "start"
-    time_start = time.clock()
+    time_start = time.time()
     urls = {"2013": "https://developer.apple.com/videos/wwdc2013/", 
             "2014": "https://developer.apple.com/videos/wwdc2014/", 
             "2015": "https://developer.apple.com/videos/wwdc2015/",
@@ -220,7 +220,7 @@ if __name__ == '__main__':
     
     threads = []
     for year, url in urls.items():
-        t = threading.Thread(None, page_wwdc_single, "page_wwdc_", (year, url))
+        t = threading.Thread(None, page_wwdc_single, "page_wwdc_single", (year, url))
         threads.append(t)
         t.start()
 
@@ -229,6 +229,6 @@ if __name__ == '__main__':
 
     analyzeNames()
 
-    print "done, 用时：", time.clock() - time_start
+    print "done, 用时：", time.time() - time_start
 
 
