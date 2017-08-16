@@ -1,4 +1,4 @@
-import os
+import os, time
 import urllib3
 import lxml, json
 
@@ -55,6 +55,7 @@ def dl_file_frome_web(url, path, file_type, mark_file_path):
     if len(url) == 0:
         return
 
+    time_start = time.time()
     pool = urllib3.PoolManager()
     r = pool.request('GET', url, preload_content = False)
 
@@ -67,7 +68,7 @@ def dl_file_frome_web(url, path, file_type, mark_file_path):
     r.release_conn()
     mark_as_finished(mark_file_path, file_type)
 
-    print "download file form:", url, "finished..."
+    print "download file form:", url, "finished, spend time for ", time.time() - time_start, "seconds"
     return
 
 def dl_start(base_path):
