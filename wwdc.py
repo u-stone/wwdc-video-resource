@@ -65,7 +65,7 @@ def page_wwdc_multithead(year, url):
 
     print_obj("WWDC"+year, " download finished...")
 
-    return url_main
+    return
 
 def page_category(year, category_name, video_info):
     for video_tuple in video_info:
