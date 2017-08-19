@@ -57,7 +57,7 @@ def page_wwdc_multithead(year, url):
         t = threading.Thread(None, page_category, "category-page-download", (year, category_name, video_info))
         category_threads.append(t)
         t.start()
-        print_obj("开启线程"+year, category_name)
+        print_obj("start thread: "+year, category_name)
     
 
     for thread in category_threads:
@@ -85,7 +85,7 @@ def page_main_nodes(pageContent):
         item_groups = item.xpath('li')
         for group in item_groups:
             # 得到每一个细分类中的元素名称和对应详细页面的URL，准备保存下来后续打开
-            #print group.text, group.tag
+            #print(group.text, group.tag)
             names = group.xpath('section/section/section/section/span/span')
             if len(names) == 0:
                 continue
@@ -122,7 +122,7 @@ def page_main_nodes(pageContent):
                     addNameString(video_name[0].text)
 
             category_url[category_name] = video_urls
-            #print category_url
+            #print(category_url)
 
     return category_url
 
@@ -153,20 +153,11 @@ def page_detail(year, category_name, video_tag_focus, video_tag_event, video_nam
         if text.lower() == "Presentation Slides (PDF)".lower():
             pdf_url = href[0]
 
-
-    '''
-    print title[0].text
-    print describe[0]
-    print sd_video_url[0]
-    print hd_video_url[0]
-    print pdf_url[0]
-    '''
-
     name = title[0].text
 
     if video_name.lower() != name.lower():
-        print "we get title：", name, "but we want：", video_name 
-        print "open page failed, URL: ", url
+        print("we get title：", name, "but we want：", video_name)
+        print("open page failed, URL: ", url)
         addFailedURL(url)
         return ""
 
@@ -193,9 +184,9 @@ def page_dl(url):
     try:
         page_content = requests.get(url, timeout=60).content.decode("utf8")
     except requests.exceptions.ConnectTimeout:
-        print "network connect failed"
+        print("network connect failed")
     except requests.exceptions.Timeout:
-        print "open: ", url, " time-out"
+        print("open: ", url, " time-out")
     
     return page_content
 
@@ -218,13 +209,13 @@ def addFailedURL(url):
 
 def printFailedURL():
     if len(urls_failed) == 0:
-        print "no failed url"
+        print("no failed url")
     else:
-        print "failed url number is ", len(urls_failed)
+        print("failed url number is ", len(urls_failed))
 
 def print_obj(msg, obj):
     tlock.acquire()
-    print msg, obj
+    print(msg, obj)
     tlock.release()
     return
 
@@ -232,7 +223,7 @@ def analyzeNames():
     char_dic = {}
     for name in all_video_names:
         for c in name:
-            if char_dic.has_key(c):
+            if c in char_dic:
                 char_dic[c] = char_dic[c] + 1
             else:
                 char_dic[c] = 1
@@ -240,7 +231,7 @@ def analyzeNames():
     save_json(basePath, "char", json.dumps(char_dic))
 
 if __name__ == '__main__':
-    print "start"
+    print("start")
     time_start = time.time()
     urls = {"2013": "https://developer.apple.com/videos/wwdc2013/", 
             "2014": "https://developer.apple.com/videos/wwdc2014/", 
@@ -260,6 +251,6 @@ if __name__ == '__main__':
     analyzeNames()
     printFailedURL()
 
-    print "done, use time(second)：", time.time() - time_start
+    print("done, use time(second)：", time.time() - time_start)
 
 
