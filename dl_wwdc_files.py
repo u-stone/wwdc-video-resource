@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 import os, time
-import urllib3
-import lxml, json
-import certifi, shutil
+import json
+import shutil
+import certifi, urllib3
 
 base_path = "/Users/ustone/WWDC/"
 desc_stat = {}
@@ -27,7 +28,7 @@ def read_json_file(path):
         except BaseException:
             print("open file exception:", path)
 
-    if len(data) == 0 :
+    if not data:
         return ret
     
     dl_finish = 0
@@ -59,7 +60,7 @@ def read_json_info(path, tags):
         except BaseException:
             print("open file exception:", path)
 
-    if len(data) == 0 :
+    if not data:
         return ret
 
     for tag in tags:
@@ -76,7 +77,7 @@ def mark_as_finished(path, file_type):
         json_string = pf.read()
 
     with open(path, "w+") as pf:
-        if len(json_string) == 0:
+        if not json_string:
             return
 
         data = json.loads(json_string)
@@ -109,36 +110,37 @@ def dl_file_frome_web(url, path, file_type, mark_file_path):
     count_dl += 1
 
     print("download file from: ", url, "and save to:", path)
-    if len(url) == 0:
+    if not url:
         return
-
-    """
-    if os.path.exists(path):
-        print("file ", path, "is existed, won't download again.")
-        return
-    """
 
     time_start = time.time()
     pool = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
     http = pool.request('GET', url, preload_content = False)
 
-    """
-    with open(path, 'wb') as pf:
-        while True:
-            data = http.read(10240)
-            if data is None:
-                break
-            pf.write(data)
-    """
     with pool.request('GET', url, preload_content=False) as resource, open(path, 'wb') as outfile:
         shutil.copyfileobj(resource, outfile)
-    http.release_conn()
+    #http.release_conn()
 
     mark_as_finished(mark_file_path, file_type)
 
-    print("spend time for ", time.time() - time_start, "seconds")
+    print("spend time for ", time.time() - time_start, "seconds， file size: ", file_size_string(path))
     return
 
+def file_size_string(path):
+    if not os.path.exists(path):
+        return "none"
+    size_string = ""
+    size = os.path.getsize(path)
+    if size > 1000000:
+        size /= 1000000
+        size_string = str(size) + " KB"
+    elif size > 1000:
+        size /= 1000
+        size_string = str(size) + "MB"
+    else:
+        size_string = str(size) + "B"
+
+    return size_string
 
 def dl_start(base_path):
     global count
@@ -153,11 +155,12 @@ def dl_start(base_path):
                 if not check_kw(item):
                     continue
                 # download pdf
-                #dl_file_frome_web(ret[3], ret[4], 2, path)
+                dl_file_frome_web(ret[3], ret[4], 2, path)
                 # download video
                 dl_file_frome_web(ret[1], ret[2], 1, path)
         else:
-            print("this is not a directory nor a json file: ", path)
+            pass
+            #print("this is not a directory nor a json file: ", path)
 
     return
 
@@ -175,7 +178,8 @@ def stat_category(base_path):
                 add_title(ret[0])
                 add_desc(ret[1])
         else:
-            print("this is not a directory nor a json file: ", path)
+            pass
+            #print("this is not a directory nor a json file: ", path)
 
     return
 

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
+"""
+this script collection urls
+"""
 import os
-import sys
-import requests
-import re
 import json
 import threading
 import time
+import requests
 from lxml import etree
 
 tlock = threading.Lock()
@@ -29,7 +31,7 @@ def save_json(path, filename, content):
 def page_wwdc_single(year, url):
     # 遍历得到每一个视频的页面
     page_content = page_dl(url)
-    if len(page_content) == 0:
+    if not page_content:
         return ""
 
     nodes = page_main_nodes(page_content)
@@ -39,14 +41,14 @@ def page_wwdc_single(year, url):
 
     for (category_name, video_info) in nodes.items():
         page_category(year, category_name, video_info)
-    
+
     print_obj("WWDC"+year, " download finished...")
     return ""
 
 def page_wwdc_multithead(year, url):
     # 遍历得到每一个视频的页面
     page_content = page_dl(url)
-    if len(page_content) == 0:
+    if not page_content:
         return
 
     nodes = page_main_nodes(page_content)
@@ -58,7 +60,7 @@ def page_wwdc_multithead(year, url):
         category_threads.append(t)
         t.start()
         print_obj("start thread: "+year, category_name)
-    
+
 
     for thread in category_threads:
         thread.join()
@@ -70,7 +72,9 @@ def page_wwdc_multithead(year, url):
 def page_category(year, category_name, video_info):
     for video_tuple in video_info:
         if len(video_tuple) == 4:
-            page_detail(year, category_name, video_tuple[0], video_tuple[1], video_tuple[2], video_tuple[3])
+            page_detail(year, category_name,
+                        video_tuple[0], video_tuple[1], video_tuple[2], video_tuple[3])
+    return
 
 def page_main_nodes(pageContent):
     # 得到全部大的节点
@@ -87,7 +91,7 @@ def page_main_nodes(pageContent):
             # 得到每一个细分类中的元素名称和对应详细页面的URL，准备保存下来后续打开
             #print(group.text, group.tag)
             names = group.xpath('section/section/section/section/span/span')
-            if len(names) == 0:
+            if not names:
                 continue
 
             category_name = names[0].text
@@ -110,7 +114,7 @@ def page_main_nodes(pageContent):
                 else:
                     # 2015开始有变化
                     video_name = video_item.xpath('./section/section/section[2]/a/h4')
-                    video_url  = video_item.xpath('./section/section/section[2]/a/@href')
+                    video_url = video_item.xpath('./section/section/section[2]/a/@href')
                     video_tag_event = video_item.xpath('./section/section/section/ul/li[@class="video-tag event"]/span')
                     if len(video_name) == 1 and len(video_url) == 1 and len(video_tag_event) == 1:
                         # 保证一个视频名称对应一个URL
@@ -118,7 +122,7 @@ def page_main_nodes(pageContent):
                         url_dic = (video_tag_focus[0].text, video_tag_event[0].text, video_name[0].text, url)
                         video_urls.append(url_dic)
 
-                if len(video_name) > 0:
+                if not video_name:
                     addNameString(video_name[0].text)
 
             category_url[category_name] = video_urls
@@ -131,7 +135,7 @@ def page_detail(year, category_name, video_tag_focus, video_tag_event, video_nam
     print_obj("downloading page: ", url)
 
     page_content = page_dl(url)
-    if len(page_content) == 0:
+    if not page_content:
         return ""
 
     dom = etree.HTML(page_content)
@@ -142,14 +146,14 @@ def page_detail(year, category_name, video_tag_focus, video_tag_event, video_nam
     sd_video_url = dom.xpath('//*[@id="main"]/section[2]/section[2]/section/ul/li[1]/ul/li[@class="download"]/ul/li[2]/a/@href')
     
 
-    if len(title) == 0 or len(describe) == 0 or len(sd_video_url) == 0 or len(hd_video_url) == 0:
+    if not title or not describe or not sd_video_url or not hd_video_url:
         return ""
 
     pdf_url = ""
     document_urls = dom.xpath('//*[@id="main"]/section[2]/section[2]/section/ul/li[1]/ul/li[@class="document"]/a')
-    for url in document_urls:
-        href = url.xpath('./@href')
-        text = url.text
+    for url_inner in document_urls:
+        href = url_inner.xpath('./@href')
+        text = url_inner.text
         if text.lower() == "Presentation Slides (PDF)".lower():
             pdf_url = href[0]
 
@@ -161,12 +165,12 @@ def page_detail(year, category_name, video_tag_focus, video_tag_event, video_nam
         addFailedURL(url)
         return ""
 
-    content = { "title": name, 
-                "describe": describe[0], 
-                "video_tag_focus": video_tag_focus, 
-                "video_tag_event": video_tag_event, 
-                "sd_video": sd_video_url[0], 
-                "hd_video": hd_video_url[0], 
+    content = { "title": name,
+                "describe": describe[0],
+                "video_tag_focus": video_tag_focus,
+                "video_tag_event": video_tag_event,
+                "sd_video": sd_video_url[0],
+                "hd_video": hd_video_url[0],
                 "pdf": pdf_url }
 
     category_name = getValidPathStr(category_name)
@@ -187,13 +191,13 @@ def page_dl(url):
         print("network connect failed")
     except requests.exceptions.Timeout:
         print("open: ", url, " time-out")
-    
+
     return page_content
 
-def getValidPathStr(str):
-    if str.find("/") != -1:
-        str = str.replace("/", "-")
-    return str
+def getValidPathStr(string):
+    if string.find("/") != -1:
+        string = string.replace("/", "-")
+    return string
 
 def addNameString(name):
     dlock.acquire()
@@ -208,7 +212,7 @@ def addFailedURL(url):
     return
 
 def printFailedURL():
-    if len(urls_failed) == 0:
+    if not urls_failed:
         print("no failed url")
     else:
         print("failed url number is ", len(urls_failed))
@@ -233,12 +237,12 @@ def analyzeNames():
 if __name__ == '__main__':
     print("start")
     time_start = time.time()
-    urls = {"2013": "https://developer.apple.com/videos/wwdc2013/", 
-            "2014": "https://developer.apple.com/videos/wwdc2014/", 
+    urls = {"2013": "https://developer.apple.com/videos/wwdc2013/",
+            "2014": "https://developer.apple.com/videos/wwdc2014/",
             "2015": "https://developer.apple.com/videos/wwdc2015/",
             "2016": "https://developer.apple.com/videos/wwdc2016/",
             "2017": "https://developer.apple.com/videos/wwdc2017/"}
-    
+
     threads = []
     for year, url in urls.items():
         t = threading.Thread(None, page_wwdc_single, "page_wwdc_single", (year, url))
@@ -252,5 +256,3 @@ if __name__ == '__main__':
     printFailedURL()
 
     print("done, use time(second)：", time.time() - time_start)
-
-
