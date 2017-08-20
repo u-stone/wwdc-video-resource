@@ -123,7 +123,7 @@ def dl_file_frome_web(url, path, file_type, mark_file_path):
 
     mark_as_finished(mark_file_path, file_type)
 
-    print("spend time for ", time.time() - time_start, "seconds， file size: ", file_size_string(path))
+    print("spend time for ", time.time() - time_start, "seconds, file size: ", file_size_string(path))
     return
 
 def file_size_string(path):
@@ -133,10 +133,10 @@ def file_size_string(path):
     size = os.path.getsize(path)
     if size > 1000000:
         size /= 1000000
-        size_string = str(size) + " KB"
+        size_string = str(size) + " MB"
     elif size > 1000:
         size /= 1000
-        size_string = str(size) + "MB"
+        size_string = str(size) + " KB"
     else:
         size_string = str(size) + "B"
 
