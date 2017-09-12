@@ -12,7 +12,7 @@ from lxml import etree
 
 tlock = threading.Lock()
 dlock = threading.Lock()
-basePath = "/Users/ustone/WWDC/"
+basePath = "G:/WWDC2/"
 all_video_names = []
 urls_failed = []
 
@@ -197,6 +197,8 @@ def page_dl(url):
 def getValidPathStr(string):
     if string.find("/") != -1:
         string = string.replace("/", "-")
+    if string.find(":") != -1:
+        string = string.replace(":", "-")
     return string
 
 def addNameString(name):
@@ -242,6 +244,7 @@ if __name__ == '__main__':
             "2015": "https://developer.apple.com/videos/wwdc2015/",
             "2016": "https://developer.apple.com/videos/wwdc2016/",
             "2017": "https://developer.apple.com/videos/wwdc2017/"}
+
 
     threads = []
     for year, url in urls.items():

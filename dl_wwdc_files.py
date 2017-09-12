@@ -6,7 +6,7 @@ import json
 import shutil
 import certifi, urllib3
 
-base_path = "/Users/ustone/WWDC/"
+base_path = "G:/WWDC2/"
 desc_stat = {}
 title_stat = {}
 count = 0
@@ -109,9 +109,10 @@ def dl_file_frome_web(url, path, file_type, mark_file_path):
     global count_dl
     count_dl += 1
 
-    print("download file from: ", url, "and save to:", path)
     if not url:
         return
+    
+    print("download file from: ", url, "and save to:", path)
 
     time_start = time.time()
     pool = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
@@ -171,7 +172,7 @@ def stat_category(base_path):
         if os.path.isdir(path):
             stat_category(path)
         elif os.path.isfile(path) and os.path.splitext(path)[1] == ".json":
-            print("processing file ", path)
+            #print("processing file ", path)
             count += 1
             ret = read_json_info(path, ["title","describe"])
             if len(ret) == 2:
@@ -207,7 +208,7 @@ def output_stat():
 
 def add_title(title_string):
     t = type(title_string)
-    if not isinstance(title_string, unicode):
+    if not isinstance(title_string, str):
         return
     title_parse = title_string.split()
     for string in title_parse:
@@ -220,7 +221,7 @@ def add_title(title_string):
 
 def add_desc(desc_string):
     t = type(desc_string)
-    if not isinstance(desc_string, unicode):
+    if not isinstance(desc_string, str):
         return
     desc_parse = desc_string.split()
     for string in desc_parse:
@@ -232,7 +233,7 @@ def add_desc(desc_string):
 
 
 if __name__ == '__main__':
-    global count
+    #global count
     kws_lower()
 
     print("start to download videos and pdfs: ")
