@@ -13,7 +13,14 @@ count = 0
 count_dl = 0
 kws = ["WKWebView", "HTTP", "Safari", "Swift", "Energy", "Text", "VR", "Runtime", "Network", 
         "OpenCL", "OpenGL", "Xcode", "Optimization", "ML", "HEVC", "Multitasking", "Tools", 
-        "Performance", "Fixing", "Optimize", "Techniques", "Affiliate"]
+        "Performance", "Fixing", "Optimize", "Techniques", "Affiliate", "LLVM", "Understanding", 
+        "Introducing", "Cocoa", "Language", "Core Data", "SiriKit", "Touch Bar", "Drag and Drop",
+        "Efficient", "Localization", "Deep Linking", "HEVC", "HEIF", "Efficiency", "HLS", "Privacy", 
+        "HomeKit", "Grand Central Dispatch", "Networking", "Notifications", "Location", "File System",
+        "Core NFC", "Neural Networks", "GCD", "CarPlay", "Internationalization", "Resources", "Auto Layout", 
+        "Measurements", "Debugging", "System Trace", "Sanitizer", "Time Profiler", "Optimizing", "Metal", 
+        "Rendering", "Core Image", "Speech Recognition", "Marvel", "Seamless", "in Depth", "Search", "Keychain",
+        "Sandbox", ""]
 
 def read_json_file(path):
     ret = (False, "", "", "", "")
@@ -98,9 +105,9 @@ def kws_lower():
     kws = tmp
 
 def check_kw(string):
-    words = string.split()
-    for word in words:
-        if kws.count(word.lower()) > 0:
+    lowString = string.lower()
+    for key in kws:
+        if key in lowString:
             return True
     
     return False
