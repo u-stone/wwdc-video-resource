@@ -26,7 +26,7 @@ def stat(rootPath, depth):
         path = os.path.join(rootPath, item)
         if os.path.isdir(path):
             stat(path, depth)
-        elif os.path.isfile(path) and os.path.splitext(path)[1] == ".mp4":
+        elif os.path.isfile(path) and (os.path.splitext(path)[1] == ".mp4" or os.path.splitext(path)[1] == ".pdf"):
             if isValideFile(path):
                 addPath(item, depth)
         else:
