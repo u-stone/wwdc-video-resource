@@ -6,11 +6,12 @@ import json
 import shutil
 import certifi, urllib3
 
-base_path = "G:/WWDC2/"
+base_path = "G:/WWDC/"
 desc_stat = {}
 title_stat = {}
 count = 0
 count_dl = 0
+video_tag = "hd_video"
 kws = ["WKWebView", "HTTP", "Safari", "Swift", "Energy", "Text", "VR", "Runtime", "Network", 
         "OpenCL", "OpenGL", "Xcode", "Optimization", "ML", "HEVC", "Multitasking", "Tools", 
         "Performance", "Fixing", "Optimize", "Techniques", "Affiliate", "LLVM", "Understanding", 
@@ -20,17 +21,18 @@ kws = ["WKWebView", "HTTP", "Safari", "Swift", "Energy", "Text", "VR", "Runtime"
         "Core NFC", "Neural Networks", "GCD", "CarPlay", "Internationalization", "Resources", "Auto Layout", 
         "Measurements", "Debugging", "System Trace", "Sanitizer", "Time Profiler", "Optimizing", "Metal", 
         "Rendering", "Core Image", "Speech Recognition", "Marvel", "Seamless", "in Depth", "Search", "Keychain",
-        "Sandbox"]
+        "Sandbox", ""]
 # i made a mistake, i added a "" into kws, so i downloaded all videos and pdfs.
 
 download_tasks = []
-thread_count = 8
+task_failed = {}
+thread_count = 16
 
 def read_json_file(path):
     ret = (False, "", "", "", "")
     if not os.path.isfile(path):
         return ret
-
+        
     data = {"":""}
     with open(path, "r") as pf:
         json_string = pf.read()
@@ -46,24 +48,23 @@ def read_json_file(path):
     video_url = ""
     pdf_url = ""
 
-    if not (("dl_pdf" in data) and (data["dl_pdf"] == "1")):
+    if not "dl_pdf" in data: 
         if "pdf" in data:
             pdf_url = data["pdf"]
-    if not (("dl_video" in data) and (data["dl_video"] == "1")):
-        if "sd_video" in data:
-            video_url = data["sd_video"]
+    if not "dl_video" in data:
+        if video_tag in data:
+            video_url = data[video_tag]
 
     path = path[:-5]
-    video_path = path + ".mp4"
-    if os.path.isfile(video_path) and os.path.getsize(video_path) < 1024000 and ("dl_video" in data) and (data["dl_video"] == "1"):
-        video_url = data["sd_video"]
-        print("re-download :", video_url, " to ", video_path)
 
     if video_url == "" and pdf_url == "":
         return ret
 
-
-
+    if not video_url == "":
+        print("re-download :", video_url, " to ", path+".mp4", " current size", file_size_string(path+".mp4"))
+    if not pdf_url == "":
+        print("re-download :", pdf_url, " to ", path+".pdf", " current size", file_size_string(path+".pdf"))
+    
     return (True, video_url, path+".mp4", pdf_url, path+".pdf")
 
 def read_json_info(path, tags):
@@ -139,16 +140,25 @@ def startTasks():
     print("all thread done")
 
 def addTask(url, path, file_type, mark_file_path):
+    if len(url) == 0:
+        return
     task = (url, path, file_type, mark_file_path)
     download_tasks.append(task)
     return
 
 def workThread(thread_index):
     num = len(download_tasks)
+    if thread_index >= num:
+        return
+
     single_task_count = num // thread_count
     last_task_added = num % thread_count
     start_index = thread_index * single_task_count
     end_index = start_index + single_task_count
+
+    if single_task_count == 0:
+        start_index = thread_index
+        end_index = start_index + 1
 
     msg = "======> thread " + str(thread_index) + " started : start index " + str(start_index) + " end: " + str(end_index) + "====="
     print(msg)
@@ -175,11 +185,19 @@ def dl_file_frome_web(url, path, file_type, mark_file_path):
 
     time_start = time.time()
     pool = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
-    http = pool.request('GET', url, preload_content = False)
+    # http = pool.request('GET', url, preload_content = False)
 
-    with pool.request('GET', url, preload_content=False) as resource, open(path, 'wb') as outfile:
+    resource = pool.request('GET', url, preload_content=False)
+    with open(path, 'wb') as outfile:
         shutil.copyfileobj(resource, outfile)
-    #http.release_conn()
+    # http.release_conn()
+    content_bytes = resource.headers.get('Content-Length')
+
+    size = os.path.getsize(path)
+    if content_bytes and size < int(content_bytes):
+        task_failed[path] = url
+        print('=====> file: ', path, ' not full downloaded')
+        return
 
     mark_as_finished(mark_file_path, file_type)
     count_dl += 1
@@ -287,6 +305,7 @@ def output_stat():
 
     save_json(base_path, "title_stat", json.dumps(title_stat))
     save_json(base_path, "desc_stat", json.dumps(desc_stat))
+    save_json(base_path, "failed_task", json.dumps(task_failed))
     
     return
 

@@ -3,23 +3,36 @@
 """
 this script collection urls
 """
+import re
 import os
 import json
 import threading
 import time
 import requests
 from lxml import etree
+from pathlib import Path
 
 tlock = threading.Lock()
 dlock = threading.Lock()
-basePath = "G:/WWDC2/"
+basePath = "G:/WWDC/"
 all_video_names = []
 urls_failed = []
 
-def save_json(path, filename, content):
+def save_json(ori_path, ori_filename, content):
+    path=""
+    invalid_char="\".?"
+    for c in ori_path:
+        if invalid_char.find(c) != -1:
+            continue
+        path += c
     if not os.path.exists(path):
         os.makedirs(path)
     # 需要注意filename中带有/字符串
+    filename=""
+    for c in ori_filename:
+        if invalid_char.find(c) != -1:
+            continue
+        filename += c
     path = path + "/" + filename + ".json"
 
     tlock.acquire()
@@ -35,11 +48,13 @@ def page_wwdc_single(year, url):
         return ""
 
     nodes = page_main_nodes(page_content)
-    #save_json("/Users/ustone/wwdc", year, json.dumps(nodes))
+    save_json(basePath, year, json.dumps(nodes))
 
     print_obj("start to download WWDC-", year)
 
     for (category_name, video_info) in nodes.items():
+        # if "Developer Tools" != category_name:
+        #     continue
         page_category(year, category_name, video_info)
 
     print_obj("WWDC"+year, " download finished...")
@@ -52,7 +67,7 @@ def page_wwdc_multithead(year, url):
         return
 
     nodes = page_main_nodes(page_content)
-    #save_json("/Users/ustone/wwdc", year, json.dumps(nodes))
+    save_json(basePath, year, json.dumps(nodes))
 
     category_threads = []
     for (category_name, video_info) in nodes.items():
@@ -79,17 +94,19 @@ def page_category(year, category_name, video_info):
 def page_main_nodes(pageContent):
     # 得到全部大的节点
     dom = etree.HTML(pageContent)
-    collections = dom.xpath('/html/body/section[4]/ul')
+    collection_focus_groups = dom.xpath('/html/body/main/section[3]/ul')
     base_url = "https://developer.apple.com"
     category_url = {}
 
-    # 实际上collections只有一个元素
-    for item in collections:
+    # 实际上collection_focus_groups只有一个元素
+    for collection_group in collection_focus_groups:
         # 得到所有大类，比如说core-os， frameworks...
-        item_groups = item.xpath('li')
-        for group in item_groups:
+        collection_items = collection_group.xpath('li')
+        for group in collection_items:
             # 得到每一个细分类中的元素名称和对应详细页面的URL，准备保存下来后续打开
             #print(group.text, group.tag)
+            # /html/body/main/section[3]/ul/li[1]/section/section/section/section/span/span
+            # /html/body/main/section[3]/ul/li[1]/ul/li[1]/section/section/section[2]
             names = group.xpath('section/section/section/section/span/span')
             if not names:
                 continue
@@ -102,25 +119,26 @@ def page_main_nodes(pageContent):
             for video_item in video_items:
                 video_name = video_item.xpath('./section/section/section/a/h4')
                 video_url  = video_item.xpath('./section/section/section/a/@href')
-                video_tag_event = video_item.xpath('./section/section/section/ul/li[@class="video-tag event"]/span')
+                pos = video_url[0][1:-1].rindex('/') + 2
+                video_tag_event = video_url[0][pos:len(video_url[0])-1]
                 video_tag_focus = video_item.xpath('.//li[@class="video-tag focus"]/span')
 
-                if len(video_name) == 1 and len(video_url) == 1 and len(video_tag_event) == 1:
+                if len(video_name) == 1 and len(video_url) >= 1 and len(video_tag_event) >= 1:
                     # 保证一个视频名称对应一个URL
                     url = base_url + video_url[0]
-                    url_dic = (video_tag_focus[0].text, video_tag_event[0].text, video_name[0].text, url)
+                    url_dic = (video_tag_focus[0].text, video_tag_event, video_name[0].text, url)
                     video_urls.append(url_dic)
                     addNameString(video_name[0].text)
-                else:
-                    # 2015开始有变化
-                    video_name = video_item.xpath('./section/section/section[2]/a/h4')
-                    video_url = video_item.xpath('./section/section/section[2]/a/@href')
-                    video_tag_event = video_item.xpath('./section/section/section/ul/li[@class="video-tag event"]/span')
-                    if len(video_name) == 1 and len(video_url) == 1 and len(video_tag_event) == 1:
-                        # 保证一个视频名称对应一个URL
-                        url = base_url + video_url[0]
-                        url_dic = (video_tag_focus[0].text, video_tag_event[0].text, video_name[0].text, url)
-                        video_urls.append(url_dic)
+                # else:
+                #     # 2015开始有变化
+                #     video_name = video_item.xpath('./section/section/section[2]/a/h4')
+                #     video_url = video_item.xpath('./section/section/section[2]/a/@href')
+                #     video_tag_event = video_item.xpath('./section/section/section/ul/li[@class="video-tag event"]/span')
+                #     if len(video_name) == 1 and len(video_url) == 1 and len(video_tag_event) == 1:
+                #         # 保证一个视频名称对应一个URL
+                #         url = base_url + video_url[0]
+                #         url_dic = (video_tag_focus[0].text, video_tag_event[0].text, video_name[0].text, url)
+                #         video_urls.append(url_dic)
 
                 if not video_name:
                     addNameString(video_name[0].text)
@@ -133,6 +151,9 @@ def page_main_nodes(pageContent):
 def page_detail(year, category_name, video_tag_focus, video_tag_event, video_name, url):
     # 在wwdc的主页上得到全部节目的列表，然后分层次下载
     print_obj("downloading page: ", url)
+
+    # if video_tag_event != '10017':
+    #     return
 
     page_content = page_dl(url)
     if not page_content:
@@ -150,12 +171,16 @@ def page_detail(year, category_name, video_tag_focus, video_tag_event, video_nam
         return ""
 
     pdf_url = ""
-    document_urls = dom.xpath('//*[@id="main"]/section[2]/section[2]/section/ul/li[1]/ul/li[@class="document"]/a')
-    for url_inner in document_urls:
-        href = url_inner.xpath('./@href')
-        text = url_inner.text
-        if text.lower() == "Presentation Slides (PDF)".lower():
-            pdf_url = href[0]
+    resources_urls = dom.xpath('//*[@id="main"]/section[2]/section[2]/section/ul/li[1]/ul[1]')
+    if len(resources_urls) == 0:
+        print('resources link not found')
+    for url_inner in resources_urls:
+        resource_list = url_inner.xpath('./li/a')
+        for resource in resource_list:
+            text = resource.text
+            if text.lower() == "Presentation Slides (PDF)".lower():
+                pdf_url = resource.xpath('./@href')[0]
+                break
 
     name = title[0].text
 
@@ -174,8 +199,8 @@ def page_detail(year, category_name, video_tag_focus, video_tag_event, video_nam
                 "pdf": pdf_url }
 
     category_name = getValidPathStr(category_name)
-    prefix_len = len("Session ")
-    video_tag_event = video_tag_event[prefix_len:]
+    # prefix_len = len("Session ")
+    # video_tag_event = video_tag_event[prefix_len:]
     video_name = "[" + year + " - " + video_tag_event + "] " + video_name
     video_name = getValidPathStr(video_name)
     path = basePath + year + "/" + category_name + "/" + video_name
@@ -236,14 +261,20 @@ def analyzeNames():
     #print("所有字符的特征: ", json.dumps(char_dic))
     save_json(basePath, "char", json.dumps(char_dic))
 
+
 if __name__ == '__main__':
     print("start")
     time_start = time.time()
-    urls = {"2013": "https://developer.apple.com/videos/wwdc2013/",
+    urls = {
+        "2013": "https://developer.apple.com/videos/wwdc2013/",
             "2014": "https://developer.apple.com/videos/wwdc2014/",
             "2015": "https://developer.apple.com/videos/wwdc2015/",
             "2016": "https://developer.apple.com/videos/wwdc2016/",
-            "2017": "https://developer.apple.com/videos/wwdc2017/"}
+            "2017": "https://developer.apple.com/videos/wwdc2017/",
+            "2018": "https://developer.apple.com/videos/wwdc2018/",
+            "2019": "https://developer.apple.com/videos/wwdc2019/",
+            "2020": "https://developer.apple.com/videos/wwdc2020/"
+            }
 
 
     threads = []

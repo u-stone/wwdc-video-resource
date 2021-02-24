@@ -9,4 +9,4 @@ import dl_wwdc_files
 
 if __name__ == '__main__':
     os.system("python wwdc.py")
-    os.system("python dl_wwdc_file.py")
+    os.system("python dl_wwdc_files.py")
