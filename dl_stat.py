@@ -1,18 +1,17 @@
 #-*- coding:utf-8 -*-
 import os, io, sys, re
+sys.path.append(".")
+import dl_config
 
-
-basePath = "G:/WWDC2"
-statPath = "G:/WWDC2"
 
 def isValideFile(path):
     return True
 
 def addPath(name, depth):
-    if not os.path.exists(statPath):
-        ps.path.mkdir(statPath)
+    if not os.path.exists(dl_config.statPath):
+        ps.path.mkdir(dl_config.statPath)
 
-    filePath = statPath + "/" + "downloaded_video.txt"
+    filePath = dl_config.statPath + "/" + "downloaded_video.txt"
     with open(filePath, "a+") as pf:
         pf.write(name)
         pf.write("\n")
@@ -36,7 +35,7 @@ def stat(rootPath, depth):
 
 if __name__ == '__main__':
     print("start")
-    stat(basePath, 1)
+    stat(dl_config.basePath, 1)
     print("finished")
 
 

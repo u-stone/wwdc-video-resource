@@ -11,10 +11,10 @@ import time
 import requests
 from lxml import etree
 from pathlib import Path
+import dl_config
 
 tlock = threading.Lock()
 dlock = threading.Lock()
-basePath = "G:/WWDC/"
 all_video_names = []
 urls_failed = []
 
@@ -48,7 +48,7 @@ def page_wwdc_single(year, url):
         return ""
 
     nodes = page_main_nodes(page_content)
-    save_json(basePath, year, json.dumps(nodes))
+    save_json(dl_config.basePath, year, json.dumps(nodes))
 
     print_obj("start to download WWDC-", year)
 
@@ -67,7 +67,7 @@ def page_wwdc_multithead(year, url):
         return
 
     nodes = page_main_nodes(page_content)
-    save_json(basePath, year, json.dumps(nodes))
+    save_json(dl_config.basePath, year, json.dumps(nodes))
 
     category_threads = []
     for (category_name, video_info) in nodes.items():
@@ -203,7 +203,7 @@ def page_detail(year, category_name, video_tag_focus, video_tag_event, video_nam
     # video_tag_event = video_tag_event[prefix_len:]
     video_name = "[" + year + " - " + video_tag_event + "] " + video_name
     video_name = getValidPathStr(video_name)
-    path = basePath + year + "/" + category_name + "/" + video_name
+    path = dl_config.basePath + year + "/" + category_name + "/" + video_name
     save_json(path, video_name, json.dumps(content))
 
     return url
@@ -224,6 +224,8 @@ def getValidPathStr(string):
         string = string.replace("/", "-")
     if string.find(":") != -1:
         string = string.replace(":", "-")
+    if string[-1] == ' ':
+        string = string[0:-1]
     return string
 
 def addNameString(name):
@@ -259,21 +261,22 @@ def analyzeNames():
             else:
                 char_dic[c] = 1
     #print("所有字符的特征: ", json.dumps(char_dic))
-    save_json(basePath, "char", json.dumps(char_dic))
+    save_json(dl_config.basePath, "char", json.dumps(char_dic))
 
 
 if __name__ == '__main__':
     print("start")
     time_start = time.time()
     urls = {
-        "2013": "https://developer.apple.com/videos/wwdc2013/",
+            "2013": "https://developer.apple.com/videos/wwdc2013/",
             "2014": "https://developer.apple.com/videos/wwdc2014/",
             "2015": "https://developer.apple.com/videos/wwdc2015/",
             "2016": "https://developer.apple.com/videos/wwdc2016/",
             "2017": "https://developer.apple.com/videos/wwdc2017/",
             "2018": "https://developer.apple.com/videos/wwdc2018/",
             "2019": "https://developer.apple.com/videos/wwdc2019/",
-            "2020": "https://developer.apple.com/videos/wwdc2020/"
+            "2020": "https://developer.apple.com/videos/wwdc2020/",
+            "2021": "https://developer.apple.com/videos/wwdc2021/"
             }
 
 
