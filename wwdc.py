@@ -196,7 +196,9 @@ def page_detail(year, category_name, video_tag_focus, video_tag_event, video_nam
                 "video_tag_event": video_tag_event,
                 "sd_video": sd_video_url[0],
                 "hd_video": hd_video_url[0],
-                "pdf": pdf_url }
+                "pdf": pdf_url,
+                "sd_video_size":0,
+                "hd_video_size":0 }
 
     category_name = getValidPathStr(category_name)
     # prefix_len = len("Session ")

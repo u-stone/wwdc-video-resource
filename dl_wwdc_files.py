@@ -2,6 +2,7 @@
 # pylint: disable=invalid-name
 
 import os, time, threading
+from datetime import datetime
 import json
 import shutil
 import certifi, urllib3
@@ -29,7 +30,7 @@ kws = ["WKWebView", "HTTP", "Safari", "Swift", "Energy", "Text", "VR", "Runtime"
 
 download_tasks = []
 task_failed = {}
-thread_count = 8
+thread_count = 16
 
 def read_json_file(path):
     ret = (False, "", "", "", "")
@@ -113,6 +114,39 @@ def mark_as_finished(path, file_type):
 
         pf.write(json.dumps(data))
 
+def set_video_file_size(path, size):
+    json_string = ""
+    with open(path, "r") as pf:
+        json_string = pf.read()
+
+    with open(path, "w+") as pf:
+        if not json_string:
+            return
+
+        data = json.loads(json_string)
+        if video_tag == "hd_video":
+            data["hd_video_size"] = size
+        elif video_tag == "sd_video":
+            data["sd_video_size"] = size
+        else:
+            return
+
+        pf.write(json.dumps(data))
+
+def get_video_file_size(path):
+    size = 0
+    with open(path, "r") as pf:
+        data = json.loads(pf.read())
+        
+        if video_tag == "hd_video" and "hd_video_size" in data.keys():
+            size = int(data["hd_video_size"])
+        elif video_tag == "sd_video" and "sd_video_size" in data.keys():
+            size = int(data["sd_video_size"])
+        else:
+            pass
+    
+    return size
+
 def kws_lower():
     tmp = []
     global kws
@@ -171,32 +205,38 @@ def workThread(thread_index):
     
     for index in range(start_index, end_index):
         task_data = download_tasks[index]
-        print("thread ", thread_index, " working")
-        dl_file_frome_web(task_data[0], task_data[1], task_data[2], task_data[3])
+        print(datetime.today().strftime('[%Y-%m-%d-%H:%M:%S]'), " thread ", thread_index, " working")
+        while True:
+            if dl_file_frome_web(task_data[0], task_data[1], task_data[2], task_data[3]):
+                break
+            
     
 
 def dl_file_frome_web(url, path, file_type, mark_file_path):
     global count_dl
 
     if not url:
-        return
+        return True
     if url[:4].lower() != "http":
         print(url, " is not a standard url")
-        return
+        return True
 
-    # print("download file from: ", url, "and save to:", path)
-    file_size = int(urlopen(url).info().get('Content-Length', -1))
+    file_size = get_video_file_size(mark_file_path)
+    # if file size is unkown(0), so we get it with urlopen
+    if (file_size == 0): 
+        file_size = int(urlopen(url).info().get('Content-Length', -1))
+        set_video_file_size(mark_file_path, file_size)
+
     if os.path.exists(path): 
         first_byte = os.path.getsize(path)
     else:
         first_byte = 0
     header = {"Range": "bytes=%s-%s" % (first_byte, file_size)}
 
-    print('== file: ', path, ' start pos: ', format_size(first_byte), ' whole size: ', format_size(file_size))
+    print('== start  == ', os.path.basename(path), ' start pos: ', format_size(first_byte), ' whole size: ', format_size(file_size))
 
     time_start = time.time()
     pool = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
-    # http = pool.request('GET', url, preload_content = False)
     chunk_size = 65536
     resource = pool.request('GET', url, preload_content=False, headers=header)
     with open(path, 'ab') as outfile:
@@ -205,22 +245,21 @@ def dl_file_frome_web(url, path, file_type, mark_file_path):
             if not data:
                 break
             outfile.write(data)
-        # shutil.copyfileobj(resource, outfile)
     resource.release_conn()
     content_bytes = resource.headers.get('Content-Length')
 
     size = os.path.getsize(path)
     if content_bytes and size < int(content_bytes):
         task_failed[path] = url
-        print('=====> file: ', path, ' not full downloaded', ' original size = ', format_size(content_bytes), ' downloaded size = ', format_size(size))
-        return
+        print('== failed == ', os.path.basename(path), ' not full downloaded', ' original size = ', format_size(content_bytes), ' downloaded size = ', format_size(size))
+        return False
 
     mark_as_finished(mark_file_path, file_type)
     count_dl += 1
     
     timeInterval = time.time() - time_start
-    print("spend time for ", path, " ", timeInterval, "seconds, file size: ", file_size_string(path), ", average speed: ", getSpeedString(path, timeInterval))
-    return
+    print("== suc    == ", os.path.basename(path), " ", timeInterval, "seconds, file size: ", file_size_string(path), ", average speed: ", getSpeedString(path, timeInterval))
+    return True
 
 def format_size(size):
     size_string = ""
@@ -319,7 +358,9 @@ def output_stat():
     print("title statistics：", title_stat)
     print("description statistics: ", desc_stat)
     """
-
+    global title_stat
+    global desc_stat
+    global task_failed
     save_json(dl_config.basePath, "title_stat", json.dumps(title_stat))
     save_json(dl_config.basePath, "desc_stat", json.dumps(desc_stat))
     save_json(dl_config.basePath, "failed_task", json.dumps(task_failed))
@@ -368,13 +409,14 @@ if __name__ == '__main__':
     get_all_tasks(dl_config.basePath)
 
     while (len(download_tasks) > 0) :
-        get_all_tasks(dl_config.basePath)
         startTasks()
         print("total file number is: ", count)
 
         output_stat()
         print("download files: ", count_dl)
         print("done, time spend:", time.time() - time_start, " seconds")
+
+        get_all_tasks(dl_config.basePath)
 
 
     
